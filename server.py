@@ -13,6 +13,7 @@ import json
 import logging
 import socket
 from typing import Dict, Tuple
+import os
 
 
 # 配置日志记录
@@ -139,15 +140,32 @@ def get_lan_ip():
 if __name__ == "__main__":
     lan_ip = get_lan_ip()
     print(f"\n请在局域网中使用以下地址访问:")
-    print(f"https://{lan_ip}:8000\n")
-    # 生成自签名证书 (开发环境)
-    # openssl req -x509 -newkey rsa:4096 -keyout key.pem -out cert.pem -days 365 -nodes
+    
+    # 检查SSL证书文件是否存在
+    ssl_keyfile = "./key.pem"
+    ssl_certfile = "./cert.pem"
+    
+    if os.path.exists(ssl_keyfile) and os.path.exists(ssl_certfile):
+        print(f"HTTPS模式: https://{lan_ip}:8000")
+        print(f"本地HTTPS: https://localhost:8000")
+        ssl_config = {
+            "ssl_keyfile": ssl_keyfile,
+            "ssl_certfile": ssl_certfile
+        }
+    else:
+        print(f"HTTP模式: http://{lan_ip}:8000")
+        print(f"本地HTTP: http://localhost:8000")
+        print("注意: 未找到SSL证书文件，使用HTTP模式运行")
+        ssl_config = {}
+    
+    print()
+    
+    # 启动服务器
     uvicorn.run(
         app,
         host="0.0.0.0",
         port=8000,
-        ssl_keyfile="./key.pem",  # 可选：添加自签名证书
-        ssl_certfile="./cert.pem",
         ws_ping_interval=20,
-        ws_ping_timeout=30
+        ws_ping_timeout=30,
+        **ssl_config
     )

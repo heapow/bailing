@@ -420,7 +420,7 @@ class Robot(ABC):
 
 if __name__ == "__main__":
     # Create the parser
-    parser = argparse.ArgumentParser(description="百聆机器人")
+    parser = argparse.ArgumentParser(description="小福机器人")
 
     # Add arguments
     parser.add_argument('config_path', type=str, help="配置文件", default=None)

@@ -1,11 +1,11 @@
-name: 百聆（bailing） 
+name: 小福助手 
 version: 1.0
 
 logging:
   level: debug
 
 # 唤醒词
-WakeWord: 百聆
+WakeWord: 小福
 
 interrupt: true
 # 是否开启工具调用
@@ -28,20 +28,23 @@ Recorder:
 
 ASR:
   FunASR:
-    model_dir: FunAudioLLM/SenseVoiceSmall
+    model_dir: FunAudioLLM/SenseVoiceSmall  # 这是专门针对中文优化的模型
     output_file: tmp/
+    # 可以尝试其他中文模型：
+    # model_dir: "damo/speech_paraformer-large_asr_nat-zh-cn-16k-common-vocab8404-pytorch"
+    # model_dir: "damo/speech_paraformer-large-vad-punc_asr_nat-zh-cn-16k-common-vocab8404-pytorch"
 
 VAD:
   SileroVAD:
     sampling_rate: 16000
-    threshold: 0.5
-    min_silence_duration_ms: 200  # 如果说话停顿比较长，可以把这个值设置大一些
+    threshold: 0.6        # 从0.5增加到0.6，减少误触发
+    min_silence_duration_ms: 1500  # 增加到1.5秒，确保一句话说完
 
 LLM:
   OpenAILLM:
     model_name: deepseek-chat
     url: https://api.deepseek.com
-    api_key:
+    api_key: sk-aa6c59dfe95a489a939be5a878cae0c9
   OllamaLLM:
     model_name: qwen-chat
     url: http://localhost:11434/api/chat # 注意后缀是api/chat
@@ -80,14 +83,14 @@ Rag:
   emb_model: models/bge-small-zh
   model_name: deepseek-chat
   url: https://api.deepseek.com
-  api_key: null
+  api_key: sk-aa6c59dfe95a489a939be5a878cae0c9
 
 Memory:
   dialogue_history_path: tmp/
   memory_file: tmp/memory.json
   model_name: deepseek-chat
   url: https://api.deepseek.com
-  api_key: null
+  api_key: sk-aa6c59dfe95a489a939be5a878cae0c9
 
 TaskManager:
   functions_call_name: plugins/function_calls_config.json

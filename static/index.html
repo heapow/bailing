@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>百聆(BaiLing) - 智能语音对话</title>
+    <title>小福助手 - 智能语音对话</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <style>
         :root {
@@ -595,9 +595,9 @@
     </div>
 
     <header>
-<!--        <h1><i class="fas fa-microphone-alt"></i> 百聆(BaiLing)</h1>-->
+
 <!--        <div class="subtitle">智能语音对话系统</div>-->
-        <h1><i class="fas fa-comments"></i> 百聆(BaiLing) <span style="font-size: 1.2rem; vertical-align: middle;">· 实时对话</span></h1>
+        <h1><i class="fas fa-comments"></i> 福之汇·小福 <span style="font-size: 1.2rem; vertical-align: middle;">· 实时对话</span></h1>
 
     </header>
 
@@ -732,7 +732,7 @@
                 // 角色标签文本
                 const roleText = {
                     'user': '用户',
-                    'assistant': '百聆',
+                    'assistant': '小福',
                     'admin': '管理员',
                     'system': '系统'
                 }[message.role] || message.role;
@@ -1085,8 +1085,8 @@
         // 模拟初始对话数据
         setTimeout(() => {
             const initialDialogue = [
-                { role: 'system', content: '欢迎使用百聆实时对话系统，请点击开始对话按钮进行对话' },
-                { role: 'bot', content: '您好！我是百聆智能语音助手，有什么可以帮您的吗？' }
+                { role: 'system', content: '欢迎使用小福实时对话系统，请点击开始对话按钮进行对话' },
+                { role: 'bot', content: '您好！我是小福智能语音助手，有什么可以帮您的吗？' }
             ];
             updateDialogue(initialDialogue);
         }, 1500);

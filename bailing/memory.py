@@ -22,6 +22,11 @@ class Memory:
         self.model_name = config.get("model_name")
         self.api_key = config.get("api_key")
         self.base_url = config.get("url")
+        
+        # 检查 api_key 是否设置
+        if not self.api_key:
+            raise ValueError("Memory.api_key 未在配置文件中设置。请在 config/config.yaml 中为 Memory 部分设置有效的 api_key")
+        
         self.client = openai.OpenAI(api_key=self.api_key, base_url=self.base_url)
 
         self.read_dialogues_in_order(file_path)

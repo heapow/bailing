@@ -54,9 +54,12 @@ class FunASR(ASR):
             res = self.model.generate(
                 input=tmpfile,
                 cache={},
-                language="auto",  # 语言选项: "zn", "en", "yue", "ja", "ko", "nospeech"
-                use_itn=True,
+                language="zn",  # 强制使用中文识别，避免误识别为日文
+                use_itn=True,   # 启用ITN（Inverse Text Normalization）提高准确率
                 batch_size_s=60,
+                # 添加更多优化参数
+                hotword="",     # 可以添加热词提高特定词汇识别率
+                timestamp=True, # 启用时间戳，帮助判断语音边界
             )
 
             text = rich_transcription_postprocess(res[0]["text"])
