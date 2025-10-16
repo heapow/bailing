@@ -27,10 +27,19 @@ class AbstractPlayer(object):
 
     @staticmethod
     def to_wav(audio_file):
+        # 如果文件已经是 WAV 格式，直接返回
+        if audio_file.lower().endswith('.wav'):
+            return audio_file
+        
+        # 否则进行格式转换（需要 ffmpeg）
         tmp_file = audio_file + ".wav"
-        wav_file = AudioSegment.from_file(audio_file)
-        wav_file.export(tmp_file, format="wav")
-        return tmp_file
+        try:
+            wav_file = AudioSegment.from_file(audio_file)
+            wav_file.export(tmp_file, format="wav")
+            return tmp_file
+        except Exception as e:
+            logger.warning(f"音频转换失败，尝试直接使用原文件: {e}")
+            return audio_file
 
     def _playing(self):
         while not self._stop_event.is_set():
