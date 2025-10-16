@@ -4,6 +4,7 @@ import os
 import subprocess
 import time
 import uuid
+import threading
 from abc import ABC, ABCMeta, abstractmethod
 from datetime import datetime
 from gtts import gTTS
@@ -308,6 +309,10 @@ class DifyTTS(AbstractTTS):
         self.user = config.get("user", "bailing-user")
         self.streaming = config.get("streaming", False)
         
+        # 添加请求锁，避免并发问题
+        self._request_lock = threading.Lock()
+        self._request_count = 0
+        
         # 验证配置
         if not self.api_key:
             raise ValueError("DifyTTS requires api_key in configuration")
@@ -332,49 +337,63 @@ class DifyTTS(AbstractTTS):
         Returns:
             生成的音频文件路径
         """
-        output_file = self._generate_filename(".wav")
-        start_time = time.time()
-        
-        try:
-            # 构建请求
-            url = f"{self.api_url}/text-to-audio"
-            headers = {
-                "Authorization": f"Bearer {self.api_key}",
-                "Content-Type": "application/json"
-            }
+        # 使用锁避免并发问题
+        with self._request_lock:
+            self._request_count += 1
+            request_id = self._request_count
             
-            payload = {
-                "text": text,
-                "user": self.user
-            }
+            output_file = self._generate_filename(".wav")
+            start_time = time.time()
             
-            logger.debug(f"Sending TTS request to Dify: {text[:50]}...")
-            
-            # 发送请求
-            response = requests.post(url, headers=headers, json=payload, timeout=30)
-            response.raise_for_status()
-            
-            # 保存音频文件
-            with open(output_file, 'wb') as f:
-                f.write(response.content)
-            
-            file_size = os.path.getsize(output_file)
-            logger.info(f"DifyTTS generated successfully: {output_file} ({file_size/1024:.2f} KB)")
-            
-            self._log_execution_time(start_time)
-            return output_file
-            
-        except requests.exceptions.Timeout:
-            logger.error("DifyTTS request timeout")
-            return None
-        except requests.exceptions.HTTPError as e:
-            logger.error(f"DifyTTS HTTP error: {e.response.status_code} - {e.response.text}")
-            return None
-        except Exception as e:
-            logger.error(f"DifyTTS generation failed: {e}")
-            import traceback
-            logger.debug(traceback.format_exc())
-            return None
+            try:
+                # 构建请求
+                url = f"{self.api_url}/text-to-audio"
+                headers = {
+                    "Authorization": f"Bearer {self.api_key}",
+                    "Content-Type": "application/json"
+                }
+                
+                payload = {
+                    "text": text,
+                    "user": self.user
+                }
+                
+                logger.info(f"[#{request_id}] Sending TTS request: {text[:50]}...")
+                
+                # 发送请求
+                response = requests.post(url, headers=headers, json=payload, timeout=30)
+                
+                # 检查响应状态
+                if response.status_code != 200:
+                    logger.error(f"[#{request_id}] TTS failed: {response.status_code} - {response.text[:100]}")
+                    return None
+                
+                # 检查内容
+                if len(response.content) == 0:
+                    logger.error(f"[#{request_id}] Empty response from Dify TTS")
+                    return None
+                
+                # 保存音频文件
+                with open(output_file, 'wb') as f:
+                    f.write(response.content)
+                
+                file_size = os.path.getsize(output_file)
+                logger.info(f"[#{request_id}] TTS success: {output_file} ({file_size/1024:.2f} KB)")
+                
+                self._log_execution_time(start_time)
+                return output_file
+                
+            except requests.exceptions.Timeout:
+                logger.error(f"[#{request_id}] TTS timeout for text: {text[:30]}...")
+                return None
+            except requests.exceptions.HTTPError as e:
+                logger.error(f"[#{request_id}] HTTP error: {e.response.status_code} - {e.response.text[:100]}")
+                return None
+            except Exception as e:
+                logger.error(f"[#{request_id}] TTS failed: {e}")
+                import traceback
+                logger.debug(traceback.format_exc())
+                return None
 
 
 def create_instance(class_name, *args, **kwargs):
