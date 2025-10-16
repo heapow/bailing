@@ -15,7 +15,7 @@ selected_module:
   Recorder: WebSocketRecorder
   ASR: FunASR
   VAD: SileroVAD
-  LLM: OpenAILLM
+  LLM: DifyLLM
   TTS: KOKOROTTS
   Player: WebSocketPlayer
 
@@ -50,8 +50,8 @@ LLM:
     url: http://localhost:11434/api/chat # 注意后缀是api/chat
     api_key:
   DifyLLM:
-    url: https://api.dify.ai/v1  # Dify API地址，如果是自部署请修改
-    api_key: app-YOUR_API_KEY_HERE  # 在Dify应用中获取API Key
+    url: http://115.190.170.250:8088/v1  # Dify API地址，如果是自部署请修改
+    api_key: app-i4OwEjCdRMkSqgA7o1DGpMzr  # 在Dify应用中获取API Key
     user: bailing-user  # 用户标识，可自定义
 
 

@@ -188,10 +188,11 @@ class DifyLLM(LLM):
         except Exception as e:
             logger.error(f"DifyLLM stream error: {e}")
     
-    def response_call(self, dialogue, tools):
+    def response_call(self, dialogue, functions_call):
         """
         Dify的工具调用支持
         注意：Dify的工具调用是在平台上配置的，这里主要处理响应
+        functions_call 参数保留以保持接口一致性，但Dify的工具是在平台上配置的
         """
         try:
             # 提取最后一条用户消息作为query
