@@ -16,7 +16,7 @@ selected_module:
   ASR: FunASR
   VAD: SileroVAD
   LLM: DifyLLM
-  TTS: KOKOROTTS
+  TTS: DifyTTS
   Player: WebSocketPlayer
 
 Recorder:
@@ -75,6 +75,11 @@ TTS:
     lang: z
     voice: zf_001
     repo_id: hexgrad/Kokoro-82M-v1.1-zh
+  DifyTTS:
+    api_url: http://115.190.170.250:8088/v1  # Dify API地址
+    api_key: app-i4OwEjCdRMkSqgA7o1DGpMzr  # 与LLM使用相同的API Key
+    output_file: tmp/
+    user: bailing-user  # 用户标识
 
 Player:
   PygameSoundPlayer: null

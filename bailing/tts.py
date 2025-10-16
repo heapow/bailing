@@ -13,6 +13,7 @@ import torch
 import torchaudio
 import soundfile as sf
 from kokoro import KModel, KPipeline
+import requests
 
 logger = logging.getLogger(__name__)
 
@@ -293,6 +294,87 @@ class KOKOROTTS(AbstractTTS):
         except Exception as e:
             logger.error(f"[KOKOROTTS] Failed to generate TTS: {e}")
             return ""
+
+
+class DifyTTS(AbstractTTS):
+    """
+    基于Dify平台的TTS服务
+    使用Dify的text-to-audio API进行语音合成
+    """
+    def __init__(self, config):
+        self.api_url = config.get("api_url", "http://115.190.170.250:8088/v1")
+        self.api_key = config.get("api_key")
+        self.output_file = config.get("output_file", "tmp/")
+        self.user = config.get("user", "bailing-user")
+        self.streaming = config.get("streaming", False)
+        
+        # 验证配置
+        if not self.api_key:
+            raise ValueError("DifyTTS requires api_key in configuration")
+        
+        logger.info(f"DifyTTS initialized with API: {self.api_url}")
+    
+    def _generate_filename(self, extension=".wav"):
+        return os.path.join(self.output_file, f"tts-{datetime.now().date()}@{uuid.uuid4().hex}{extension}")
+    
+    def _log_execution_time(self, start_time):
+        end_time = time.time()
+        execution_time = end_time - start_time
+        logger.debug(f"DifyTTS Execution Time: {execution_time:.2f} seconds")
+    
+    def to_tts(self, text):
+        """
+        使用Dify API生成语音
+        
+        Args:
+            text: 要合成的文本
+            
+        Returns:
+            生成的音频文件路径
+        """
+        output_file = self._generate_filename(".wav")
+        start_time = time.time()
+        
+        try:
+            # 构建请求
+            url = f"{self.api_url}/text-to-audio"
+            headers = {
+                "Authorization": f"Bearer {self.api_key}",
+                "Content-Type": "application/json"
+            }
+            
+            payload = {
+                "text": text,
+                "user": self.user
+            }
+            
+            logger.debug(f"Sending TTS request to Dify: {text[:50]}...")
+            
+            # 发送请求
+            response = requests.post(url, headers=headers, json=payload, timeout=30)
+            response.raise_for_status()
+            
+            # 保存音频文件
+            with open(output_file, 'wb') as f:
+                f.write(response.content)
+            
+            file_size = os.path.getsize(output_file)
+            logger.info(f"DifyTTS generated successfully: {output_file} ({file_size/1024:.2f} KB)")
+            
+            self._log_execution_time(start_time)
+            return output_file
+            
+        except requests.exceptions.Timeout:
+            logger.error("DifyTTS request timeout")
+            return None
+        except requests.exceptions.HTTPError as e:
+            logger.error(f"DifyTTS HTTP error: {e.response.status_code} - {e.response.text}")
+            return None
+        except Exception as e:
+            logger.error(f"DifyTTS generation failed: {e}")
+            import traceback
+            logger.debug(traceback.format_exc())
+            return None
 
 
 def create_instance(class_name, *args, **kwargs):
