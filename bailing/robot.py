@@ -28,44 +28,94 @@ logger = logging.getLogger(__name__)
 
 
 class Robot(ABC):
+    def send_progress(self, step, message, percentage):
+        """发送初始化进度到前端"""
+        if hasattr(self, 'websocket') and self.websocket and hasattr(self, 'loop') and self.loop:
+            try:
+                import asyncio
+                progress_data = {
+                    "type": "init_progress",
+                    "step": step,
+                    "message": message,
+                    "percentage": percentage
+                }
+                # 在事件循环中发送消息
+                asyncio.run_coroutine_threadsafe(
+                    self.websocket.send_text(json.dumps(progress_data, ensure_ascii=False)),
+                    self.loop
+                )
+                logger.info(f"发送初始化进度: Step {step} - {message} ({percentage}%)")
+            except Exception as e:
+                logger.error(f"发送初始化进度失败: {e}")
+    
     def __init__(self, config_file, websocket = None, loop = None):
         config = read_config(config_file)
         self.audio_queue = queue.Queue()
 
+        # WebSocket连接（用于发送进度通知）
+        self.websocket = websocket
+        self.loop = loop
+        
+        # Step 1: 初始化基础组件 (0-30%)
+        self.send_progress(1, "正在初始化录音和播放器...", 5)
+        
         self.recorder = recorder.create_instance(
             config["selected_module"]["Recorder"],
             config["Recorder"][config["selected_module"]["Recorder"]]
         )
+        
+        self.send_progress(1, "正在加载ASR语音识别模型...", 10)
+        logger.info("开始加载ASR模型...")
 
         self.asr = asr.create_instance(
             config["selected_module"]["ASR"],
             config["ASR"][config["selected_module"]["ASR"]]
         )
+        
+        logger.info("ASR模型加载完成")
+        self.send_progress(1, "正在加载对话模型...", 20)
 
         self.llm = llm.create_instance(
             config["selected_module"]["LLM"],
             config["LLM"][config["selected_module"]["LLM"]]
         )
 
+        self.send_progress(1, "正在加载语音合成模型...", 25)
+        
         self.tts = tts.create_instance(
             config["selected_module"]["TTS"],
             config["TTS"][config["selected_module"]["TTS"]]
         )
 
+        self.send_progress(1, "正在加载语音检测模型...", 28)
+        
         self.vad = vad.create_instance(
             config["selected_module"]["VAD"],
             config["VAD"][config["selected_module"]["VAD"]]
         )
 
-
         self.player = player.create_instance(
             config["selected_module"]["Player"],
             config["Player"][config["selected_module"]["Player"]]
         )
-
-        self.memory = memory.Memory(config.get("Memory"))
+        
+        self.send_progress(1, "基础模型加载完成", 30)
+        
+        # Step 2: 初始化对话记忆 (30-60%)
+        self.send_progress(2, "正在加载对话历史...", 35)
+        
+        # 使用快速加载模式，跳过历史对话处理，加快初始化速度
+        self.memory = memory.Memory(config.get("Memory"), lazy_load=True)
+        
+        self.send_progress(2, "对话记忆快速加载完成", 60)
+        
+        # Step 3: 准备对话系统 (60-85%)
+        self.send_progress(3, "正在构建系统提示词...", 65)
+        
         self.prompt = sys_prompt.replace("{memory}", self.memory.get_memory()).strip()
-
+        
+        self.send_progress(3, "正在初始化对话管理器...", 70)
+        
         self.vad_queue = queue.Queue()
         self.dialogue = Dialogue(config["Memory"]["dialogue_history_path"])
         self.dialogue.put(Message(role="system", content=self.prompt))
@@ -94,17 +144,30 @@ class Robot(ABC):
         # 初始化单例
         #rag.Rag(config["Rag"])  # 第一次初始化
 
+        self.send_progress(3, "正在加载任务管理器...", 80)
+        
         self.task_queue = queue.Queue()
         self.task_manager = TaskManager(config.get("TaskManager"), self.task_queue)
         self.start_task_mode = config.get("StartTaskMode")
+        
+        self.send_progress(3, "对话系统准备完成", 85)
 
+        # Step 4: 最终准备 (85-100%)
+        self.send_progress(4, "正在启动播放器...", 90)
+        
         if config["selected_module"]["Player"].lower().find("websocket") > -1:
             self.player.init(websocket, loop)
             self.listen_dialogue(self.player.send_messages)
+        
+        self.send_progress(4, "系统自检中...", 95)
+        
+        # 发送初始化完成通知
+        self.send_progress(4, "✨ 初始化完成，准备就绪！", 100)
+        logger.info("Robot初始化完成！")
 
     def listen_dialogue(self, callback):
         self.callback = callback
-
+    
     def _stream_vad(self):
         def vad_thread():
             while not self.stop_event.is_set():
@@ -416,6 +479,34 @@ class Robot(ABC):
         self.dialogue.dump_dialogue()
         logger.debug(json.dumps(self.dialogue.get_llm_dialogue(), indent=4, ensure_ascii=False))
         return True
+
+    async def _send_init_progress(self, websocket, step, message, percentage):
+        """发送初始化进度通知"""
+        try:
+            if websocket:
+                progress_data = {
+                    "type": "init_progress",
+                    "step": step,
+                    "message": message,
+                    "percentage": percentage
+                }
+                await websocket.send_text(json.dumps(progress_data))
+                logger.info(f"发送初始化进度: {message} ({percentage}%)")
+        except Exception as e:
+            logger.error(f"发送进度通知失败: {e}")
+
+    async def _send_init_complete(self, websocket):
+        """发送初始化完成通知"""
+        try:
+            if websocket:
+                complete_data = {
+                    "type": "init_complete",
+                    "message": "初始化完成，可以开始对话了！"
+                }
+                await websocket.send_text(json.dumps(complete_data))
+                logger.info("发送初始化完成通知")
+        except Exception as e:
+            logger.error(f"发送完成通知失败: {e}")
 
 
 if __name__ == "__main__":

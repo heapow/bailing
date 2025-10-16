@@ -2,7 +2,7 @@ chattts==0.1.1
 edge_tts==6.1.12
 Flask==3.0.3
 Flask_SocketIO==5.3.7
-funasr==1.1.6
+funasr==1.2.7
 gTTS==2.5.3
 numpy==1.26.4
 openai==1.97.0

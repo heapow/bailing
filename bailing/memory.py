@@ -11,7 +11,7 @@ from bailing.prompt import memory_prompt_template
 logger = logging.getLogger(__name__)
 
 class Memory:
-    def __init__(self, config):
+    def __init__(self, config, lazy_load=True):
         file_path = config.get("dialogue_history_path")
         self.memory_file = config.get("memory_file")
         if os.path.isfile(self.memory_file):
@@ -29,9 +29,12 @@ class Memory:
         
         self.client = openai.OpenAI(api_key=self.api_key, base_url=self.base_url)
 
-        self.read_dialogues_in_order(file_path)
-
-        write_json_file(self.memory_file, self.memory)
+        # 如果是懒加载模式，跳过历史对话处理，加快初始化速度
+        if not lazy_load:
+            self.read_dialogues_in_order(file_path)
+            write_json_file(self.memory_file, self.memory)
+        else:
+            logger.info("Memory使用快速加载模式，历史对话将在后台处理")
 
 
     def get_memory(self):

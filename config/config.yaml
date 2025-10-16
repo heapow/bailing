@@ -28,12 +28,12 @@ Recorder:
 
 ASR:
   FunASR:
-    model_dir: "damo/speech_paraformer-large-vad-punc_asr_nat-zh-cn-16k-common-vocab8404-pytorch"
-    # model_dir: FunAudioLLM/SenseVoiceSmall  # 这是专门针对中文优化的模型
+    # 使用本地缓存路径，避免每次联网检查（速度最快）
+    model_dir: /Users/louxin/.cache/modelscope/hub/models/damo/speech_paraformer-large-vad-punc_asr_nat-zh-cn-16k-common-vocab8404-pytorch
     output_file: tmp/
-    # 可以尝试其他中文模型：
-    # model_dir: "damo/speech_paraformer-large_asr_nat-zh-cn-16k-common-vocab8404-pytorch"
+    # 如果上面的路径不存在，使用在线模型（会联网检查）：
     # model_dir: "damo/speech_paraformer-large-vad-punc_asr_nat-zh-cn-16k-common-vocab8404-pytorch"
+    # model_dir: FunAudioLLM/SenseVoiceSmall
 
 VAD:
   SileroVAD:

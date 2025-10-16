@@ -223,6 +223,170 @@
             box-shadow: 0 8px 20px rgba(254, 202, 87, 0.4);
         }
 
+        /* 初始化进度条样式 */
+        .init-progress {
+            margin-top: 20px;
+            padding: 30px;
+            background: rgba(10, 15, 30, 0.8);
+            border-radius: 15px;
+            border: 1px solid rgba(74, 108, 247, 0.3);
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+        }
+
+        .progress-container {
+            text-align: center;
+        }
+
+        /* Loading 旋转动画 */
+        .loading-spinner {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+
+        .spinner {
+            width: 50px;
+            height: 50px;
+            border: 4px solid rgba(74, 108, 247, 0.2);
+            border-top: 4px solid #4a6cf7;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin-bottom: 15px;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        /* Loading 跳动的点 */
+        .loading-dots {
+            display: flex;
+            gap: 8px;
+        }
+
+        .dot {
+            width: 8px;
+            height: 8px;
+            background: #4a6cf7;
+            border-radius: 50%;
+            animation: bounce 1.4s infinite ease-in-out both;
+        }
+
+        .dot:nth-child(1) {
+            animation-delay: -0.32s;
+        }
+
+        .dot:nth-child(2) {
+            animation-delay: -0.16s;
+        }
+
+        @keyframes bounce {
+            0%, 80%, 100% {
+                transform: scale(0);
+                opacity: 0.5;
+            }
+            40% {
+                transform: scale(1);
+                opacity: 1;
+            }
+        }
+
+        .progress-bar {
+            width: 100%;
+            height: 8px;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 4px;
+            overflow: hidden;
+            margin-bottom: 15px;
+        }
+
+        .progress-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #4a6cf7, #8a6cf7, #ff6b6b);
+            border-radius: 4px;
+            width: 0%;
+            transition: width 0.5s ease;
+            animation: progressShimmer 2s infinite;
+        }
+
+        @keyframes progressShimmer {
+            0% { background-position: -200% 0; }
+            100% { background-position: 200% 0; }
+        }
+
+        .progress-text {
+            color: var(--text-light);
+            font-size: 1.2rem;
+            font-weight: 600;
+            margin-bottom: 10px;
+        }
+
+        .progress-subtitle {
+            color: var(--text-muted);
+            font-size: 0.9rem;
+            margin-bottom: 20px;
+            font-style: italic;
+        }
+
+        .progress-steps {
+            display: flex;
+            justify-content: space-between;
+            gap: 10px;
+        }
+
+        .step {
+            flex: 1;
+            padding: 12px 10px;
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 10px;
+            color: var(--text-muted);
+            font-size: 0.85rem;
+            transition: all 0.3s ease;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 6px;
+            border: 1px solid transparent;
+        }
+
+        .step i {
+            font-size: 1.2rem;
+            margin-bottom: 2px;
+        }
+
+        .step.active {
+            background: rgba(74, 108, 247, 0.3);
+            color: var(--text-light);
+            border: 1px solid rgba(74, 108, 247, 0.5);
+            transform: scale(1.05);
+            box-shadow: 0 5px 15px rgba(74, 108, 247, 0.3);
+        }
+
+        .step.active i {
+            animation: pulse 1.5s ease-in-out infinite;
+        }
+
+        @keyframes pulse {
+            0%, 100% {
+                transform: scale(1);
+            }
+            50% {
+                transform: scale(1.2);
+            }
+        }
+
+        .step.completed {
+            background: rgba(31, 221, 161, 0.3);
+            color: var(--text-light);
+            border: 1px solid rgba(31, 221, 161, 0.5);
+        }
+
+        .step.completed i {
+            color: #1dd1a1;
+        }
+
         /* 对话容器 */
         #dialogue-container {
             max-width: 1200px;
@@ -574,6 +738,30 @@
                 min-width: 100%;
             }
 
+            .loading-spinner .spinner {
+                width: 40px;
+                height: 40px;
+            }
+
+            .progress-steps {
+                flex-wrap: wrap;
+                gap: 8px;
+            }
+
+            .step {
+                font-size: 0.75rem;
+                padding: 10px 8px;
+                min-width: calc(50% - 4px);
+            }
+
+            .step i {
+                font-size: 1rem;
+            }
+
+            .progress-subtitle {
+                font-size: 0.8rem;
+            }
+
             #dialogue-container {
                 height: calc(100vh - 450px);
             }
@@ -618,6 +806,45 @@
             <button id="interruptBtn" class="control-btn interrupt" disabled>
                 <i class="fas fa-hand-paper"></i> 打断
             </button>
+        </div>
+        
+        <!-- 初始化进度条 -->
+        <div id="initProgress" class="init-progress" style="display: none;">
+            <div class="progress-container">
+                <!-- Loading 动画 -->
+                <div class="loading-spinner">
+                    <div class="spinner"></div>
+                    <div class="loading-dots">
+                        <span class="dot"></span>
+                        <span class="dot"></span>
+                        <span class="dot"></span>
+                    </div>
+                </div>
+                
+                <div class="progress-bar">
+                    <div class="progress-fill"></div>
+                </div>
+                <div class="progress-text">正在初始化AI模型...</div>
+                <div class="progress-subtitle">首次加载需要下载模型，请耐心等待...</div>
+                <div class="progress-steps">
+                    <div class="step active" id="step1">
+                        <i class="fas fa-server"></i>
+                        <span>连接服务器</span>
+                    </div>
+                    <div class="step" id="step2">
+                        <i class="fas fa-microphone"></i>
+                        <span>加载语音识别</span>
+                    </div>
+                    <div class="step" id="step3">
+                        <i class="fas fa-brain"></i>
+                        <span>初始化对话模型</span>
+                    </div>
+                    <div class="step" id="step4">
+                        <i class="fas fa-check-circle"></i>
+                        <span>准备就绪</span>
+                    </div>
+                </div>
+            </div>
         </div>
 
     </div>
@@ -694,6 +921,48 @@
             connectionStatus = status;
             statusIndicator.className = 'status-indicator ' + status;
             statusText.textContent = '状态: ' + message;
+        }
+
+        // 显示初始化进度条
+        function showInitProgress() {
+            const progressElement = document.getElementById('initProgress');
+            progressElement.style.display = 'block';
+            startBtn.disabled = true;
+        }
+
+        // 隐藏初始化进度条
+        function hideInitProgress() {
+            const progressElement = document.getElementById('initProgress');
+            progressElement.style.display = 'none';
+        }
+
+        // 更新进度条百分比
+        function updateProgressBar(percentage) {
+            const progressFill = document.querySelector('.progress-fill');
+            progressFill.style.width = percentage + '%';
+        }
+
+        // 更新进度步骤
+        function updateProgressStep(stepNumber, text) {
+            // 重置所有步骤
+            for (let i = 1; i <= 4; i++) {
+                const step = document.getElementById(`step${i}`);
+                step.className = 'step';
+            }
+            
+            // 设置当前步骤为活跃状态
+            const currentStep = document.getElementById(`step${stepNumber}`);
+            currentStep.className = 'step active';
+            
+            // 设置之前的步骤为完成状态
+            for (let i = 1; i < stepNumber; i++) {
+                const step = document.getElementById(`step${i}`);
+                step.className = 'step completed';
+            }
+            
+            // 更新进度文本
+            const progressText = document.querySelector('.progress-text');
+            progressText.textContent = text;
         }
 
         // 添加日志
@@ -994,6 +1263,10 @@
         startBtn.addEventListener('click', async () => {
             updateStatus("连接中...");
             addLog("尝试连接到服务器...");
+            
+            // 显示进度条
+            showInitProgress();
+            updateProgressStep(1, "连接服务器");
 
             try {
                 const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
@@ -1002,19 +1275,24 @@
                 websocket.binaryType = 'arraybuffer';
 
                 websocket.onopen = async () => {
-                    updateStatus("已连接，准备录音...", "connected");
+                    updateStatus("已连接，等待初始化...", "connected");
                     addLog("WebSocket连接已建立");
-
+                    
+                    // 初始化AudioPlayer和WebRecorder
                     player = new AudioPlayer(updateStatus, websocket);
                     recorder = new WebRecorder(websocket);
 
-                    const started = await recorder.start();
-                    if (started) {
-                        updateStatus("录音中...", "recording");
-                        startBtn.disabled = true;
-                        stopBtn.disabled = false;
-                        interruptBtn.disabled = false;
-                    }
+                    // 等待后台初始化完成后会自动收到进度消息
+                    // 当收到100%进度时，启动录音
+                    window.initCompleteCallback = async () => {
+                        const started = await recorder.start();
+                        if (started) {
+                            updateStatus("录音中...", "recording");
+                            startBtn.disabled = true;
+                            stopBtn.disabled = false;
+                            interruptBtn.disabled = false;
+                        }
+                    };
                 };
 
                 websocket.onmessage = async (event) => {
@@ -1022,6 +1300,31 @@
                     if (typeof event.data === 'string') {
                         // addLog("收到对话数据"+event.data);
                         const message = JSON.parse(event.data);
+                        
+                        // 处理初始化进度消息
+                        if (message.type === 'init_progress') {
+                            updateProgressStep(message.step, message.message);
+                            updateProgressBar(message.percentage);
+                            addLog(`初始化进度: ${message.message}`);
+                            
+                            // 如果初始化完成，启动录音
+                            if (message.step === 4 && message.percentage === 100) {
+                                setTimeout(async () => {
+                                    const started = await recorder.start();
+                                    if (started) {
+                                        updateStatus("录音中...", "recording");
+                                        startBtn.disabled = true;
+                                        stopBtn.disabled = false;
+                                        interruptBtn.disabled = false;
+                                        hideInitProgress();
+                                        
+                                        // 语音提示
+                                        addLog("🎉 系统已准备就绪，请说'小福'唤醒我！", "success");
+                                    }
+                                }, 500);
+                            }
+                            return;
+                        }
                         if (message.type === 'interrupt') {
                             player.interrupt();
                             updateStatus("收到打断指令", "disconnected");
@@ -1041,12 +1344,15 @@
                 websocket.onerror = (error) => {
                     addLog(`WebSocket错误: ${error}`);
                     updateStatus("连接错误", "disconnected");
+                    hideInitProgress();
+                    startBtn.disabled = false;
                 };
 
                 websocket.onclose = () => {
                     addLog("连接已关闭");
                     updateStatus("连接已关闭", "disconnected");
                     if (recorder) recorder.stop();
+                    hideInitProgress();
                     startBtn.disabled = false;
                     stopBtn.disabled = true;
                     interruptBtn.disabled = true;
@@ -1055,6 +1361,8 @@
             } catch (error) {
                 addLog(`连接失败: ${error}`);
                 updateStatus("连接失败", "disconnected");
+                hideInitProgress();
+                startBtn.disabled = false;
             }
         });
 
