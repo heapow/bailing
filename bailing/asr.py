@@ -42,7 +42,7 @@ class FunASR(ASR):
             model=self.model_dir,
             vad_kwargs={"max_single_segment_time": 30000},
             disable_update=True,
-            hub="hf"
+            hub="ms"  # 使用ModelScope hub
             # device="cuda:0",  # 如果有GPU，可以解开这行并指定设备
         )
 

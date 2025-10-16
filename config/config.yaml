@@ -28,7 +28,8 @@ Recorder:
 
 ASR:
   FunASR:
-    model_dir: FunAudioLLM/SenseVoiceSmall  # 这是专门针对中文优化的模型
+    model_dir: "damo/speech_paraformer-large-vad-punc_asr_nat-zh-cn-16k-common-vocab8404-pytorch"
+    # model_dir: FunAudioLLM/SenseVoiceSmall  # 这是专门针对中文优化的模型
     output_file: tmp/
     # 可以尝试其他中文模型：
     # model_dir: "damo/speech_paraformer-large_asr_nat-zh-cn-16k-common-vocab8404-pytorch"
