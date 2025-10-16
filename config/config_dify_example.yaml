@@ -15,7 +15,7 @@ selected_module:
   Recorder: WebSocketRecorder
   ASR: FunASR
   VAD: SileroVAD
-  LLM: OpenAILLM
+  LLM: DifyLLM  # 使用Dify作为LLM
   TTS: KOKOROTTS
   Player: WebSocketPlayer
 
@@ -30,9 +30,6 @@ ASR:
   FunASR:
     model_dir: FunAudioLLM/SenseVoiceSmall  # 这是专门针对中文优化的模型
     output_file: tmp/
-    # 可以尝试其他中文模型：
-    # model_dir: "damo/speech_paraformer-large_asr_nat-zh-cn-16k-common-vocab8404-pytorch"
-    # model_dir: "damo/speech_paraformer-large-vad-punc_asr_nat-zh-cn-16k-common-vocab8404-pytorch"
 
 VAD:
   SileroVAD:
@@ -44,15 +41,25 @@ LLM:
   OpenAILLM:
     model_name: deepseek-chat
     url: https://api.deepseek.com
-    api_key: sk-aa6c59dfe95a489a939be5a878cae0c9
+    api_key: sk-your-deepseek-key
   OllamaLLM:
     model_name: qwen-chat
     url: http://localhost:11434/api/chat # 注意后缀是api/chat
     api_key:
   DifyLLM:
-    url: https://api.dify.ai/v1  # Dify API地址，如果是自部署请修改
-    api_key: app-YOUR_API_KEY_HERE  # 在Dify应用中获取API Key
-    user: bailing-user  # 用户标识，可自定义
+    # Dify云服务地址（官方）
+    url: https://api.dify.ai/v1
+    # 如果使用自部署版本，修改为你的服务地址，例如:
+    # url: http://localhost/v1
+    # url: http://your-domain.com/v1
+    
+    # 在Dify应用中获取的API密钥
+    # 格式: app-xxxxxxxxxxxxx
+    api_key: app-YOUR_API_KEY_HERE
+    
+    # 用户标识，用于区分不同用户的对话
+    # 相同user会共享对话历史
+    user: bailing-user
 
 
 TTS:
@@ -87,20 +94,16 @@ Rag:
   emb_model: models/bge-small-zh
   model_name: deepseek-chat
   url: https://api.deepseek.com
-  api_key: sk-aa6c59dfe95a489a939be5a878cae0c9
+  api_key: sk-your-deepseek-key
 
 Memory:
   dialogue_history_path: tmp/
   memory_file: tmp/memory.json
   model_name: deepseek-chat
   url: https://api.deepseek.com
-  api_key: sk-aa6c59dfe95a489a939be5a878cae0c9
+  api_key: sk-your-deepseek-key
 
 TaskManager:
   functions_call_name: plugins/function_calls_config.json
   aigc_manus_enabled: false
-
-
-
-
 

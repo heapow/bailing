@@ -33,7 +33,11 @@
 
 - 🎙 **ASR**: 使用 [FunASR](https://github.com/modelscope/FunASR) 进行自动语音识别，将用户的语音转换为文本。
 - 🎚 **VAD**: 使用 [silero-vad](https://github.com/snakers4/silero-vad) 进行语音活动检测，以确保只处理有效的语音片段。
-- 🧠 **LLM**: 使用 [deepseek](https://github.com/deepseek-ai/DeepSeek-LLM) 作为大语言模型来处理用户输入并生成响应，极具性价比。
+- 🧠 **LLM**: 支持多种大语言模型：
+  - [deepseek](https://github.com/deepseek-ai/DeepSeek-LLM) - 极具性价比的国产模型
+  - [Dify](https://github.com/langgenius/dify) - 开源LLM应用开发平台，支持多模型切换和工作流编排
+  - OpenAI及其他兼容OpenAI API的模型
+  - Ollama本地模型
 - 🔊 **TTS**: 使用 [edge-tts](https://github.com/rany2/edge-tts) [Kokoro-82M](https://huggingface.co/hexgrad/Kokoro-82M) [ChatTTS](https://github.com/2noise/ChatTTS) MacOS say进行文本到语音的转换，将生成的文本响应转换为自然流畅的语音。
 
 
@@ -102,7 +106,10 @@ Robot 负责高效的任务管理与记忆管理，能够智能地处理用户�
 
      - 打开config/config.yaml 配置ASR LLM等相关配置
      - 下载SenseVoiceSmall到目录models/SenseVoiceSmall [SenseVoiceSmall下载地址](https://huggingface.co/FunAudioLLM/SenseVoiceSmall/tree/main)
-     - 去deepseek官网，获取配置api_key，[deepseek获取api_key](https://platform.deepseek.com/api_keys)，当然也可以配置openai、qwen、gemini、01yi等其他模型
+     - **配置LLM（三选一）**：
+       - **DeepSeek**: 去deepseek官网获取api_key，[deepseek获取api_key](https://platform.deepseek.com/api_keys)
+       - **Dify**: 在Dify平台创建应用并获取API Key，详见 [Dify集成说明](docs/DIFY_INTEGRATION.md)
+       - **其他模型**: 也可以配置openai、qwen、gemini、01yi等其他兼容OpenAI API的模型
      - 如果需要使用通用AIGC配置（测试中），不可用的话，可以使用tag 分支 v0.0.1 v0.0.2 
        - /third_party/OpenManus/config/config.toml  需要配置里面的 model、base_url、api_key 
 4. 运行项目：
@@ -136,8 +143,19 @@ Robot 负责高效的任务管理与记忆管理，能够智能地处理用户�
 1. 启动应用后，系统会等待语音输入。
 2. 通过 FunASR 将用户语音转为文本。
 3. silero-vad 进行语音活动检测，确保只处理有效语音。
-4. deepseek 处理文本输入，并生成智能回复。
+4. LLM（deepseek/Dify/其他）处理文本输入，并生成智能回复。
 5. edge-tts, Kokoro-82M, ChatTTS, MacOs say 将生成的文本转换为语音，并播放给用户。
+
+### LLM模型切换
+
+项目支持多种LLM，可在 `config/config.yaml` 中切换：
+
+```yaml
+selected_module:
+  LLM: DifyLLM  # 可选: OpenAILLM, DifyLLM, OllamaLLM
+```
+
+详细的Dify集成说明请参考：[docs/DIFY_INTEGRATION.md](docs/DIFY_INTEGRATION.md)
 
 
 ## Roadmap

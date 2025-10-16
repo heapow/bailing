@@ -99,6 +99,169 @@ class OllamaLLM(LLM):
             logger.error(f"OllamaLLM tool-call error: {e}")
 
 
+class DifyLLM(LLM):
+    """
+    Dify平台的LLM实现
+    支持Dify的聊天应用和Agent应用
+    """
+    def __init__(self, config):
+        self.api_key = config.get("api_key")
+        self.base_url = config.get("url", "https://api.dify.ai/v1")
+        self.user = config.get("user", "bailing-user")
+        self.conversation_id = None  # 用于保持对话上下文
+        
+    def response(self, dialogue):
+        """
+        调用Dify的chat-messages接口进行对话
+        dialogue: 标准的消息列表格式 [{"role": "user", "content": "..."}, ...]
+        """
+        try:
+            # 提取最后一条用户消息作为query
+            query = ""
+            for msg in reversed(dialogue):
+                if msg.get("role") == "user":
+                    query = msg.get("content", "")
+                    break
+            
+            if not query:
+                logger.warning("No user message found in dialogue")
+                return
+            
+            # 构建Dify API请求
+            url = f"{self.base_url}/chat-messages"
+            headers = {
+                "Authorization": f"Bearer {self.api_key}",
+                "Content-Type": "application/json"
+            }
+            
+            payload = {
+                "inputs": {},
+                "query": query,
+                "response_mode": "streaming",
+                "user": self.user
+            }
+            
+            # 如果有conversation_id，添加到请求中以保持上下文
+            if self.conversation_id:
+                payload["conversation_id"] = self.conversation_id
+            
+            # 发送流式请求
+            resp = requests.post(url, headers=headers, json=payload, stream=True)
+            resp.raise_for_status()
+            
+            # 处理流式响应
+            for line in resp.iter_lines():
+                if not line:
+                    continue
+                
+                # Dify返回的是 "data: {json}" 格式
+                line_str = line.decode('utf-8')
+                if line_str.startswith("data: "):
+                    line_str = line_str[6:]  # 移除 "data: " 前缀
+                
+                try:
+                    data = json.loads(line_str)
+                    event = data.get("event")
+                    
+                    # 处理不同类型的事件
+                    if event == "message":
+                        # 普通消息事件，包含文本内容
+                        content = data.get("answer", "")
+                        if content:
+                            yield content
+                    elif event == "agent_message":
+                        # Agent消息事件
+                        content = data.get("answer", "")
+                        if content:
+                            yield content
+                    elif event == "message_end":
+                        # 消息结束事件，保存conversation_id
+                        self.conversation_id = data.get("conversation_id")
+                    elif event == "error":
+                        # 错误事件
+                        logger.error(f"Dify API error: {data}")
+                        
+                except json.JSONDecodeError as e:
+                    logger.debug(f"Failed to parse line: {line_str}, error: {e}")
+                    continue
+                    
+        except Exception as e:
+            logger.error(f"DifyLLM stream error: {e}")
+    
+    def response_call(self, dialogue, tools):
+        """
+        Dify的工具调用支持
+        注意：Dify的工具调用是在平台上配置的，这里主要处理响应
+        """
+        try:
+            # 提取最后一条用户消息作为query
+            query = ""
+            for msg in reversed(dialogue):
+                if msg.get("role") == "user":
+                    query = msg.get("content", "")
+                    break
+            
+            if not query:
+                logger.warning("No user message found in dialogue")
+                return
+            
+            # 构建Dify API请求
+            url = f"{self.base_url}/chat-messages"
+            headers = {
+                "Authorization": f"Bearer {self.api_key}",
+                "Content-Type": "application/json"
+            }
+            
+            payload = {
+                "inputs": {},
+                "query": query,
+                "response_mode": "streaming",
+                "user": self.user
+            }
+            
+            # 如果有conversation_id，添加到请求中
+            if self.conversation_id:
+                payload["conversation_id"] = self.conversation_id
+            
+            # 发送流式请求
+            resp = requests.post(url, headers=headers, json=payload, stream=True)
+            resp.raise_for_status()
+            
+            # 处理流式响应
+            for line in resp.iter_lines():
+                if not line:
+                    continue
+                
+                line_str = line.decode('utf-8')
+                if line_str.startswith("data: "):
+                    line_str = line_str[6:]
+                
+                try:
+                    data = json.loads(line_str)
+                    event = data.get("event")
+                    
+                    if event == "message":
+                        content = data.get("answer", "")
+                        yield content, None
+                    elif event == "agent_message":
+                        content = data.get("answer", "")
+                        yield content, None
+                    elif event == "agent_thought":
+                        # Agent思考过程，可以记录但不返回
+                        logger.debug(f"Agent thought: {data}")
+                    elif event == "message_end":
+                        self.conversation_id = data.get("conversation_id")
+                    elif event == "error":
+                        logger.error(f"Dify API error: {data}")
+                        
+                except json.JSONDecodeError as e:
+                    logger.debug(f"Failed to parse line: {line_str}")
+                    continue
+                    
+        except Exception as e:
+            logger.error(f"DifyLLM tool-call error: {e}")
+
+
 def create_instance(class_name, *args, **kwargs):
     # 获取类对象
     cls = globals().get(class_name)
