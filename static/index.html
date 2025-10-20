@@ -147,6 +147,53 @@
             letter-spacing: 0.5px;
         }
 
+        /* 通话计时器样式 */
+        .call-timer {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 12px 20px;
+            margin-bottom: 10px;
+            background: linear-gradient(135deg, rgba(31, 221, 161, 0.2), rgba(20, 180, 130, 0.1));
+            border: 1px solid rgba(31, 221, 161, 0.4);
+            border-radius: 12px;
+            backdrop-filter: blur(10px);
+            animation: timerPulse 2s ease-in-out infinite;
+        }
+
+        .call-timer i {
+            font-size: 1.2rem;
+            color: #1dd1a1;
+            animation: clockTick 1s steps(1) infinite;
+        }
+
+        @keyframes clockTick {
+            0%, 50% {
+                transform: rotate(0deg);
+            }
+            100% {
+                transform: rotate(6deg);
+            }
+        }
+
+        @keyframes timerPulse {
+            0%, 100% {
+                box-shadow: 0 0 10px rgba(31, 221, 161, 0.3);
+            }
+            50% {
+                box-shadow: 0 0 20px rgba(31, 221, 161, 0.5);
+            }
+        }
+
+        #timerDisplay {
+            font-size: 1.3rem;
+            font-weight: 700;
+            color: var(--text-light);
+            font-family: 'Courier New', monospace;
+            letter-spacing: 2px;
+            text-shadow: 0 0 10px rgba(31, 221, 161, 0.5);
+        }
+
         .status-indicator.connecting {
             background: var(--warning);
             animation: pulse 1.5s infinite;
@@ -762,6 +809,17 @@
                 font-size: 0.8rem;
             }
 
+            .call-timer {
+                padding: 10px 15px;
+                margin-bottom: 10px;
+                gap: 8px;
+            }
+
+            #timerDisplay {
+                font-size: 1.1rem;
+                letter-spacing: 1px;
+            }
+
             #dialogue-container {
                 height: calc(100vh - 450px);
             }
@@ -794,6 +852,12 @@
         <div class="status-box">
             <div class="status-indicator disconnected"></div>
             <div class="status-text">状态: 未连接</div>
+        </div>
+
+        <!-- 通话计时器 -->
+        <div id="callTimer" class="call-timer" style="display: none;">
+            <i class="fas fa-clock"></i>
+            <span id="timerDisplay">00:00:00</span>
         </div>
 
         <div class="control-buttons">
@@ -915,12 +979,65 @@
         let recorder = null;
         let connectionStatus = 'disconnected';
         let logsVisible = false;
+        
+        // 计时器相关
+        let callStartTime = null;
+        let timerInterval = null;
+        const callTimer = document.getElementById('callTimer');
+        const timerDisplay = document.getElementById('timerDisplay');
 
         // 更新状态显示
         function updateStatus(status, message) {
             connectionStatus = status;
             statusIndicator.className = 'status-indicator ' + status;
-            statusText.textContent = '状态: ' + message;
+            
+            // 简化状态显示：连接后统一显示"通话中"
+            if (status === 'connected' || status === 'recording' || status === 'processing' || status === 'playing') {
+                statusText.textContent = '状态: 通话中';
+            } else if (status === 'error') {
+                statusText.textContent = '状态: 连接错误';
+            } else if (status === 'connecting') {
+                statusText.textContent = '状态: 连接中';
+            } else {
+                statusText.textContent = '状态: 空闲';
+            }
+        }
+
+        // 启动计时器
+        function startTimer() {
+            callStartTime = Date.now();
+            callTimer.style.display = 'flex';
+            
+            timerInterval = setInterval(() => {
+                const elapsed = Date.now() - callStartTime;
+                const hours = Math.floor(elapsed / 3600000);
+                const minutes = Math.floor((elapsed % 3600000) / 60000);
+                const seconds = Math.floor((elapsed % 60000) / 1000);
+                
+                timerDisplay.textContent = 
+                    `${String(hours).padStart(2, '0')}:${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`;
+            }, 1000);
+            
+            addLog("⏱️ 通话计时已启动");
+        }
+
+        // 停止计时器
+        function stopTimer() {
+            if (timerInterval) {
+                clearInterval(timerInterval);
+                timerInterval = null;
+            }
+            
+            if (callStartTime) {
+                const elapsed = Date.now() - callStartTime;
+                const minutes = Math.floor(elapsed / 60000);
+                const seconds = Math.floor((elapsed % 60000) / 1000);
+                addLog(`⏱️ 通话结束，总时长: ${minutes}分${seconds}秒`);
+            }
+            
+            callTimer.style.display = 'none';
+            timerDisplay.textContent = '00:00:00';
+            callStartTime = null;
         }
 
         // 显示初始化进度条
@@ -1275,8 +1392,8 @@
                 websocket.binaryType = 'arraybuffer';
 
                 websocket.onopen = async () => {
-                    updateStatus("已连接，等待初始化...", "connected");
-                    addLog("WebSocket连接已建立");
+                    updateStatus("已连接，等待初始化...", "connecting");
+                    addLog("🔗 WebSocket连接已建立");
                     
                     // 初始化AudioPlayer和WebRecorder
                     player = new AudioPlayer(updateStatus, websocket);
@@ -1312,7 +1429,8 @@
                                 setTimeout(async () => {
                                     const started = await recorder.start();
                                     if (started) {
-                                        updateStatus("录音中...", "recording");
+                                        updateStatus("connected", "通话中");
+                                        startTimer(); // 开始计时器
                                         startBtn.disabled = true;
                                         stopBtn.disabled = false;
                                         interruptBtn.disabled = false;
@@ -1342,9 +1460,10 @@
                 };
 
                 websocket.onerror = (error) => {
-                    addLog(`WebSocket错误: ${error}`);
-                    updateStatus("连接错误", "disconnected");
+                    addLog(`❌ WebSocket连接错误: ${error}`);
+                    updateStatus("连接错误", "error");
                     hideInitProgress();
+                    stopTimer();
                     startBtn.disabled = false;
                 };
 
@@ -1353,14 +1472,18 @@
                     updateStatus("连接已关闭", "disconnected");
                     if (recorder) recorder.stop();
                     hideInitProgress();
+                    
+                    // 停止计时器
+                    stopTimer();
+                    
                     startBtn.disabled = false;
                     stopBtn.disabled = true;
                     interruptBtn.disabled = true;
                 };
 
             } catch (error) {
-                addLog(`连接失败: ${error}`);
-                updateStatus("连接失败", "disconnected");
+                addLog(`❌ 连接失败: ${error}`);
+                updateStatus("连接失败", "error");
                 hideInitProgress();
                 startBtn.disabled = false;
             }
@@ -1369,10 +1492,14 @@
         stopBtn.addEventListener('click', () => {
             if (websocket) websocket.close();
             if (recorder) recorder.stop();
-            updateStatus("已停止", "disconnected");
+            updateStatus("idle", "空闲");
             startBtn.disabled = false;
             stopBtn.disabled = true;
             interruptBtn.disabled = true;
+            
+            // 停止计时器
+            stopTimer();
+            
             addLog("对话已停止");
         });
 

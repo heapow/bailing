@@ -60,7 +60,7 @@ class FunASR(ASR):
                 use_itn=True,   # 启用ITN（Inverse Text Normalization）提高准确率
                 batch_size_s=60,
                 # 添加更多优化参数
-                hotword="",     # 可以添加热词提高特定词汇识别率
+                hotword="福之汇",     # 可以添加热词提高特定词汇识别率
                 timestamp=True, # 启用时间戳，帮助判断语音边界
             )
 

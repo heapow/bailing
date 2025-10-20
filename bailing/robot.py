@@ -134,6 +134,9 @@ class Robot(ABC):
         # 线程锁
         self.chat_lock = False
 
+        # 打断状态标志
+        self.client_abort = False
+
         # 事件用于控制程序退出
         self.stop_event = threading.Event()
 
@@ -184,7 +187,11 @@ class Robot(ABC):
         def priority_thread():
             while not self.stop_event.is_set():
                 try:
-                    future = self.tts_queue.get()
+                    future = self.tts_queue.get(timeout=1)
+                    # 检查是否被打断
+                    if self.client_abort:
+                        logger.info("收到打断信号，跳过当前TTS任务")
+                        continue
                     try:
                         tts_file = future.result(timeout=5)
                     except TimeoutError:
@@ -195,7 +202,13 @@ class Robot(ABC):
                         continue
                     if tts_file is None:
                         continue
+                    # 再次检查是否被打断
+                    if self.client_abort:
+                        logger.info("收到打断信号，跳过播放")
+                        continue
                     self.player.play(tts_file)
+                except queue.Empty:
+                    continue
                 except Exception as e:
                     logger.error(f"tts_priority priority_thread: {e}")
         tts_priority = threading.Thread(target=priority_thread, daemon=True)
@@ -204,7 +217,18 @@ class Robot(ABC):
     def interrupt_playback(self):
         """中断当前的语音播放"""
         logger.info("Interrupting current playback.")
+        # 设置打断标志
+        self.client_abort = True
+        # 清空播放队列
         self.player.stop()
+        # 清空TTS队列
+        self.clear_tts_queue()
+    
+    def clear_tts_queue(self):
+        """清空TTS队列"""
+        with self.tts_queue.mutex:
+            self.tts_queue.queue.clear()
+        logger.info("TTS队列已清空")
 
     def shutdown(self):
         """关闭所有资源，确保程序安全退出"""
@@ -250,8 +274,8 @@ class Robot(ABC):
         if "start" in vad_status:
             if self.player.get_playing_status() or self.chat_lock is True:  # 正在播放，打断场景
                 if self.INTERRUPT:
-                    self.chat_lock = False
                     self.interrupt_playback()
+                    self.chat_lock = False
                     self.vad_start = True
                     self.speech.append(data)
                 else:
@@ -295,9 +319,17 @@ class Robot(ABC):
         if text is None or len(text)<=0:
             logger.info(f"无需tts转换，query为空，{text}")
             return None
+        # 在TTS转换前检查是否被打断
+        if self.client_abort:
+            logger.info(f"已被打断，跳过TTS转换：{text[:20]}...")
+            return None
         tts_file = self.tts.to_tts(text)
         if tts_file is None:
             logger.error(f"tts转换失败，{text}")
+            return None
+        # TTS完成后再次检查是否被打断
+        if self.client_abort:
+            logger.info(f"已被打断，跳过播放：{text[:20]}...")
             return None
         logger.debug(f"TTS 文件生成完毕{self.chat_lock}")
         #if self.chat_lock is False:
@@ -310,6 +342,7 @@ class Robot(ABC):
     def chat_tool(self, query):
         # 打印逐步生成的响应内容
         start = 0
+        is_first_sentence = True  # 标记是否是第一句话
         try:
             start_time = time.time()  # 记录开始时间
             llm_responses = self.llm.response_call(self.dialogue.get_llm_dialogue(), functions_call=self.task_manager.get_functions())
@@ -346,9 +379,9 @@ class Robot(ABC):
                     response_message_concat = "".join(response_message)
                     end_time = time.time()  # 记录结束时间
                     logger.debug(f"大模型返回时间时间tool: {end_time - start_time} 秒, 生成token={content}")
-                    flag_segment, index_segment = is_segment_sentence(response_message_concat, start)
+                    flag_segment, index_segment = is_segment_sentence(response_message_concat, start, is_first_sentence)
                     logger.debug(
-                        f"大模型返回时间时间tool: flag_segment={flag_segment} 秒, index_segment={index_segment}")
+                        f"大模型返回时间时间tool: flag_segment={flag_segment} 秒, index_segment={index_segment}, is_first={is_first_sentence}")
 
                     if flag_segment:
                         segment_text = response_message_concat[start:index_segment + 1]
@@ -360,6 +393,8 @@ class Robot(ABC):
                         self.tts_queue.put(future)
                         # futures.append(future)
                         start = index_segment + 1  # len(response_message)
+                        # 第一句话已经处理完，后续使用严格断句
+                        is_first_sentence = False
 
         if not tool_call_flag:
             response_message_concat = "".join(response_message)
@@ -423,7 +458,10 @@ class Robot(ABC):
         response_message = []
         # futures = []
         start = 0
+        is_first_sentence = True  # 标记是否是第一句话
         self.chat_lock = True
+        # 重置打断标志，开始新的对话
+        self.client_abort = False
         if self.start_task_mode:
             response_message = self.chat_tool(query)
         else:
@@ -441,9 +479,9 @@ class Robot(ABC):
                 response_message_concat = "".join(response_message)
                 end_time = time.time()  # 记录结束时间
                 logger.debug(f"大模型返回时间时间tool: {end_time - start_time} 秒, 生成token={content}")
-                flag_segment, index_segment = is_segment_sentence(response_message_concat, start)
+                flag_segment, index_segment = is_segment_sentence(response_message_concat, start, is_first_sentence)
                 logger.debug(
-                    f"大模型返回时间时间tool: flag_segment={flag_segment} 秒, index_segment={index_segment}")
+                    f"大模型返回时间时间tool: flag_segment={flag_segment} 秒, index_segment={index_segment}, is_first={is_first_sentence}")
                 if flag_segment:
                     segment_text = response_message_concat[start:index_segment + 1]
                     # 为了保证语音的连贯，至少2个字才转tts
@@ -454,6 +492,8 @@ class Robot(ABC):
                     self.tts_queue.put(future)
                     # futures.append(future)
                     start = index_segment + 1  # len(response_message)
+                    # 第一句话已经处理完，后续使用严格断句
+                    is_first_sentence = False
 
             # 处理剩余的响应
             response_message_concat = "".join(response_message)

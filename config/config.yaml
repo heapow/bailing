@@ -15,8 +15,8 @@ selected_module:
   Recorder: WebSocketRecorder
   ASR: FunASR
   VAD: SileroVAD
-  LLM: DifyLLM
-  TTS: DifyTTS
+  LLM: OpenAILLM
+  TTS: KOKOROTTS
   Player: WebSocketPlayer
 
 Recorder:

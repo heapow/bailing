@@ -37,9 +37,25 @@ def is_segment(tokens):
     else:
         return False
 
-def is_segment_sentence(tokens, start_index):
+def is_segment_sentence(tokens, start_index, is_first_sentence=False):
+    """
+    检查是否可以断句
+    Args:
+        tokens: 文本内容
+        start_index: 开始检查的位置
+        is_first_sentence: 是否是第一句话，第一句话会使用更宽松的断句策略（包含逗号）实现快速响应
+    Returns:
+        (是否找到断句点, 断句位置)
+    """
+    # 第一句话使用更宽松的断句标点（包含逗号、顿号等），以实现快速响应
+    if is_first_sentence:
+        punctuations = (",", ".", "?", "，", "。", "？", "！", "!", ";", "；", ":", "：", "、", "~")
+    else:
+        # 非第一句话使用严格的断句标点（句子结束符）
+        punctuations = (".", "?", "。", "？", "！", "!", ";", "；", ":", "：")
+    
     for i in range(len(tokens) - 1, start_index - 1, -1):
-        if tokens[i] in (",", ".", "?", "，", "。", "？", "！", "!", ";", "；", ":", "："):
+        if tokens[i] in punctuations:
             return True, i
     return False, None
 
